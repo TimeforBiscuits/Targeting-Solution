@@ -41,3 +41,7 @@ npm test           # rules + dice distribution tests
 To put it on the phone, host the folder over HTTPS (for example with GitHub Pages: Settings → Pages → deploy from the branch). Open the page in Safari and choose **Share → Add to Home Screen**. It then launches full-screen and works offline through the service worker.
 
 Note: iOS mutes web audio when the ring/silent switch is set to silent.
+
+## Hardware version
+
+For plans to rebuild Targeting Solution as a handheld device on a Raspberry Pi Pico 2, see [docs/PICO_PORT.md](docs/PICO_PORT.md).
