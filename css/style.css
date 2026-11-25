@@ -410,6 +410,162 @@ button {
 .hit-label { font-size: clamp(22px, 7.5vh, 34px); line-height: .9; letter-spacing: 4px; }
 .hit-num { font-size: clamp(64px, 26vh, 112px); line-height: .85; }
 .hit-of { font-size: clamp(16px, 5vh, 22px); opacity: .7; }
+/* CRIT CHK: vertical letters flanking the hit number, with flashing highlight bars */
+.hit-mid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.crit-v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: clamp(16px, 5.4vh, 24px);
+  font-size: clamp(15px, 5vh, 22px);
+  line-height: .95;
+  border-radius: 2px;
+  visibility: hidden; /* reserves space so the number never shifts */
+}
+.hit-mid.crit-on .crit-v {
+  visibility: visible;
+  animation: critbar 400ms steps(1) infinite;
+}
+@keyframes critbar {
+  0%   { background: var(--lcd-fg); color: var(--lcd-bg); text-shadow: none; }
+  50%  { background: transparent; color: var(--lcd-fg); }
+}
+
+.lcd-msg {
+  position: absolute;
+  inset: 0;
+  padding: 4px 6px 6px;
+}
+[hidden] { display: none !important; }
+
+.lcd-status {
+  display: flex;
+  gap: 16px;
+  font-size: clamp(14px, 4.6vh, 20px);
+  line-height: 1;
+  letter-spacing: 1px;
+  padding: 0 6px 2px;
+  border-bottom: 2px solid color-mix(in srgb, var(--lcd-fg) 35%, transparent);
+  white-space: nowrap;
+}
+.lcd-status .ready { margin-left: auto; }
+.lcd-status .warn { animation: blink 500ms steps(1) infinite; }
+
+.lcd-setup { display: flex; flex-direction: column; }
+.lcd-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: center;
+}
+.lcd-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 78%;
+  margin: 0 4px;
+  font-size: clamp(36px, 15vh, 66px);
+  line-height: 1;
+  border-radius: 2px;
+}
+.lcd-cell .jump {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: clamp(16px, 5.6vh, 26px);
+  line-height: 1.05;
+}
+.blink { animation: flash 180ms steps(1) 1; }
+
+/* Fire view */
+.lcd-fire { display: flex; gap: 8px; }
+.fire-left { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dicegrid {
+  --die: 30px;
+  --sum: 16px;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding-top: 4px;
+}
+.shot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: max(2px, calc(var(--die) * 0.12));
+}
+.die {
+  width: var(--die);
+  height: var(--die);
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: calc(var(--die) * 0.1);
+  border: max(2px, calc(var(--die) * 0.07)) solid var(--lcd-fg);
+  border-radius: max(2px, calc(var(--die) * 0.12));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--lcd-fg) calc(var(--lcd-glow) * 80%), transparent);
+}
+.die i {
+  display: block;
+  margin: auto;
+  width: 62%;
+  height: 62%;
+  border-radius: 1px;
+  background: var(--lcd-fg);
+  opacity: 0;
+}
+.die i.on { opacity: 1; }
+.dicegrid.two-row .shot {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: max(2px, calc(var(--die) * 0.14));
+  row-gap: 2px;
+  justify-items: center;
+}
+.dicegrid.two-row .sum { grid-column: 1 / -1; }
+.shot.idle .die { opacity: .18; }
+.shot.idle .sum { opacity: .25; }
+.shot.rolling .die { animation: jitter 84ms steps(1) infinite; }
+.shot.miss .die, .shot.miss .sum { opacity: .38; }
+.sum {
+  min-width: calc(var(--die) * 1.1);
+  padding: 0 3px;
+  font-size: var(--sum);
+  line-height: 1.05;
+  text-align: center;
+  border-radius: 2px;
+}
+.shot.hit .sum {
+  background: var(--lcd-fg);
+  color: var(--lcd-bg);
+  text-shadow: none;
+}
+.shot.hit .die {
+  background: color-mix(in srgb, var(--lcd-fg) 16%, transparent);
+}
+.shot.nat12 .sum { animation: blink 300ms steps(1) infinite; }
+
+.fire-right {
+  flex: none;
+  width: clamp(120px, 20vw, 180px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-left: 2px solid color-mix(in srgb, var(--lcd-fg) 35%, transparent);
+  padding-left: 6px;
+}
+.hit-label { font-size: clamp(22px, 7.5vh, 34px); line-height: .9; letter-spacing: 4px; }
+.hit-num { font-size: clamp(64px, 26vh, 112px); line-height: .85; }
+.hit-of { font-size: clamp(16px, 5vh, 22px); opacity: .7; }
 .crit {
   margin-top: 4px;
   padding: 0 6px;

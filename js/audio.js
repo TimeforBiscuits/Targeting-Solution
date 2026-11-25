@@ -12,47 +12,62 @@ export function isSoundEnabled() {
   return enabled;
 }
 
-// iOS only unlocks audio from touchend / click (NOT touchstart / pointerdown),
-// so listen for those on the whole document, every time, to also recover
-// from iOS "interrupted" states (calls, backgrounding, Siri).
-let unlocked = false;
+// iOS only unlocks audio from touchend / click (NOT touchstart / pointerdown).
+// After the app has been in the background, iOS may also take the audio
+// session away: the context then stays suspended/"interrupted", or worse,
+// reports "running" while producing silence. Resuming is unreliable, so the
+// fix is to throw the context away and build a fresh one on the first tap
+// after returning. (All sounds are synthesized, so rebuilding is cheap.)
+let stale = false;
+
 export function installAudioUnlock() {
   const kick = () => {
     unlockAudio();
-    if (ctx && !unlocked) {
-      // Play a silent buffer inside the gesture: this is what actually unlocks iOS.
-      const s = ctx.createBufferSource();
-      s.buffer = ctx.createBuffer(1, 1, 22050);
-      s.connect(ctx.destination);
-      s.start(0);
-      if (ctx.state === 'running') unlocked = true;
-    }
-  };
-  ['touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, kick, { capture: true, passive: true }));
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
-  });
-}
-
-export function unlockAudio() {
-  if (!ctx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    ctx = new AC();
-    master = ctx.createGain();
-    master.gain.value = 0.55;
-    const comp = ctx.createDynamicsCompressor();
-    master.connect(comp).connect(ctx.destination);
-    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    // Play a silent buffer to fully unlock on iOS.
+    if (!ctx) return;
+    // Playing a buffer inside the gesture is what actually unlocks iOS.
     const s = ctx.createBufferSource();
     s.buffer = ctx.createBuffer(1, 1, 22050);
     s.connect(ctx.destination);
     s.start(0);
+  };
+  ['touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, kick, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stale = true;
+  });
+  window.addEventListener('pagehide', () => {
+    stale = true;
+  });
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) stale = true;
+  });
+}
+
+function buildContext() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  ctx = new AC();
+  ctx.onstatechange = () => {
+    if (ctx && ctx.state !== 'running') stale = true;
+  };
+  master = ctx.createGain();
+  master.gain.value = 0.55;
+  const comp = ctx.createDynamicsCompressor();
+  master.connect(comp).connect(ctx.destination);
+  noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+
+export function unlockAudio() {
+  if (ctx && (stale || ctx.state === 'closed')) {
+    const old = ctx;
+    ctx = null;
+    old.onstatechange = null;
+    old.close().catch(() => {});
   }
-  if (ctx.state !== 'running') ctx.resume().catch(() => {});
+  stale = false;
+  if (!ctx) buildContext();
+  if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
 }
 
 function ready() {

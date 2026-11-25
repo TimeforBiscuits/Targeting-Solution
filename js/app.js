@@ -218,7 +218,8 @@ function sizeGrid(n) {
   const labelH = Math.max(12, Math.min(22, cellH * 0.24));
   // one row: dice stacked vertically; two rows: each pair side by side
   const byW = rows === 1 ? cellW * 0.72 : (cellW * 0.86) / 2.15;
-  const byH = rows === 1 ? (cellH - labelH - 8) / 2 : cellH - labelH - 8;
+  // account for the gaps between the dice and the sum label
+  const byH = rows === 1 ? (cellH - labelH - 10) / 2.3 : (cellH - labelH - 6) / 1.12;
   const size = Math.max(10, Math.floor(Math.min(byW, byH, 52)));
   g.style.setProperty('--die', `${size}px`);
   g.style.setProperty('--sum', `${Math.floor(labelH)}px`);
@@ -245,7 +246,7 @@ async function fire() {
   els.lcdSetup.hidden = true;
   els.lcdMsg.hidden = true;
   els.lcdFire.hidden = false;
-  els.critTag.hidden = true;
+  els.critTag.classList.remove('crit-on');
   els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span><span class="ready blinkslow">FIRING</span>`;
   els.hitNum.textContent = '0';
   els.hitOf.textContent = `/${n}`;
@@ -296,7 +297,7 @@ async function fire() {
   els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span><span class="ready">${hits ? 'ON TARGET' : 'MISSED'}</span>`;
   sfx.sfxDone(hits, n);
   if (result.crit) {
-    els.critTag.hidden = false;
+    els.critTag.classList.add('crit-on');
     sfx.sfxCrit();
   }
 }
