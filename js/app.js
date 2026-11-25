@@ -45,7 +45,7 @@ let rollId = 0;
 let rolling = false;
 let skipAnim = false;
 let lastDiceCount = 0;
-let critPending = false; // natural 12 rolled: next FIRE rolls on the crit table
+let critPending = false; // natural 12 rolled: CRIT key strobes until used
 let critTable = 'mech';
 let critSumValue = null;
 
@@ -63,6 +63,7 @@ const els = {
   critTbl: $('critTbl'),
   btnVic: $('btnVic'),
   btnFire: $('btnFire'),
+  btnCrit: $('btnCrit'),
   lcdRow: $('lcdRow'),
   lcdStatus: $('lcdStatus'),
   fireStatus: $('fireStatus'),
@@ -181,7 +182,7 @@ function showSetup() {
 
 function setCritPending(on) {
   critPending = on;
-  els.btnFire.classList.toggle('strobe', on);
+  els.btnCrit.classList.toggle('strobe', on);
 }
 
 // ---------- Fire view ----------
@@ -203,8 +204,9 @@ function buildGrid(n) {
   g.innerHTML = '';
   const rows = n <= 8 ? 1 : 2;
   const cols = Math.ceil(n / rows);
-  g.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  g.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  // minmax(0, 1fr): tracks are sized by the LCD, never stretched by the dice
+  g.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  g.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
   g.classList.toggle('two-row', rows === 2);
   const cells = [];
   for (let i = 0; i < n; i++) {
@@ -226,18 +228,22 @@ function buildGrid(n) {
 
 function sizeGrid(n) {
   const g = els.diceGrid;
-  if (!n) return;
+  if (!n || els.lcdFire.hidden) return;
   const rows = n <= 8 ? 1 : 2;
   const cols = Math.ceil(n / rows);
-  const r = g.getBoundingClientRect();
-  if (!r.width) return;
-  const cellW = r.width / cols;
-  const cellH = r.height / rows;
-  const labelH = Math.max(12, Math.min(22, cellH * 0.24));
+  // content box only (exclude the grid's padding)
+  const cs = getComputedStyle(g);
+  const w = g.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const h = g.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if (w <= 0 || h <= 0) return;
+  const cellW = w / cols;
+  const cellH = h / rows;
+  const labelH = Math.max(11, Math.min(22, cellH * 0.24));
+  const labelBox = labelH * 1.05; // .sum line-height
   // one row: dice stacked vertically; two rows: each pair side by side
   const byW = rows === 1 ? cellW * 0.72 : (cellW * 0.86) / 2.15;
-  // account for the gaps between the dice and the sum label
-  const byH = rows === 1 ? (cellH - labelH - 10) / 2.3 : (cellH - labelH - 6) / 1.12;
+  // leave room for gaps between dice and label, plus a safety margin
+  const byH = rows === 1 ? (cellH - labelBox - 10) / 2.3 : (cellH - labelBox - 8) / 1.06;
   const size = Math.max(10, Math.floor(Math.min(byW, byH, 52)));
   g.style.setProperty('--die', `${size}px`);
   g.style.setProperty('--sum', `${Math.floor(labelH)}px`);
@@ -250,11 +256,8 @@ async function fire() {
     skipAnim = true; // second press fast-forwards
     return;
   }
-  if (critPending) {
-    critCheck();
-    return;
-  }
   const tn = computeTN(state);
+  setCritPending(false); // a new attack supersedes an unused crit check
   if (tn > 12) {
     noShot(tn);
     return;
@@ -327,6 +330,18 @@ async function fire() {
 }
 
 // ---------- Crit check ----------
+// CRIT key: rolls on the crit table at any time (natural 12, or attacks that
+// cause crits regardless, e.g. anti-'Mech infantry base-to-base).
+function critKey() {
+  sfx.unlockAudio();
+  sfx.sfxBigKey();
+  if (rolling) {
+    skipAnim = true; // finish the current roll first
+    return;
+  }
+  critCheck();
+}
+
 async function critCheck() {
   setCritPending(false);
   const id = ++rollId;
@@ -520,12 +535,18 @@ function init() {
   renderSetup();
   bindBigKey($('btnFire'), fire);
   bindBigKey($('btnReset'), reset);
+  bindBigKey(els.btnCrit, critKey);
   bindBigKey(els.btnVic, toggleVehicle);
 
   sfx.installAudioUnlock();
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('gesturestart', (e) => e.preventDefault());
-  window.addEventListener('resize', () => sizeGrid(lastDiceCount));
+  const resize = () => requestAnimationFrame(() => sizeGrid(lastDiceCount));
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 300));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) resize(); });
+  if (document.fonts) document.fonts.ready.then(resize);
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(els.diceGrid);
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
