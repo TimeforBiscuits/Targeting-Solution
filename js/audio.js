@@ -12,7 +12,28 @@ export function isSoundEnabled() {
   return enabled;
 }
 
-// Must be called from inside a user gesture (iOS requirement).
+// iOS only unlocks audio from touchend / click (NOT touchstart / pointerdown),
+// so listen for those on the whole document, every time, to also recover
+// from iOS "interrupted" states (calls, backgrounding, Siri).
+let unlocked = false;
+export function installAudioUnlock() {
+  const kick = () => {
+    unlockAudio();
+    if (ctx && !unlocked) {
+      // Play a silent buffer inside the gesture: this is what actually unlocks iOS.
+      const s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, 22050);
+      s.connect(ctx.destination);
+      s.start(0);
+      if (ctx.state === 'running') unlocked = true;
+    }
+  };
+  ['touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, kick, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
+  });
+}
+
 export function unlockAudio() {
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -31,7 +52,7 @@ export function unlockAudio() {
     s.connect(ctx.destination);
     s.start(0);
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
 }
 
 function ready() {

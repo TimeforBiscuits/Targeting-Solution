@@ -1,5 +1,5 @@
 // Offline cache for the app shell (and Google Fonts once fetched).
-const CACHE = 'targeting-solution-v1';
+const CACHE = 'targeting-solution-v2';
 const SHELL = [
   './',
   'index.html',

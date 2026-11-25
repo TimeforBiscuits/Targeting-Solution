@@ -420,6 +420,7 @@ function init() {
   bindBigKey($('btnFire'), fire);
   bindBigKey($('btnReset'), reset);
 
+  sfx.installAudioUnlock();
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   window.addEventListener('resize', () => sizeGrid(lastDiceCount));
