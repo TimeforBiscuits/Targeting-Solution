@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Targeting">
+  <meta name="theme-color" content="#1b1c14">
+  <title>Targeting Solution</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-body="olive" data-lcd="wht-red">
+  <main class="unit" id="unit">
+    <span class="screw tl"></span><span class="screw tr"></span>
+    <span class="screw bl"></span><span class="screw br"></span>
+
+    <header class="topbar">
+      <div class="guard"><button class="bigkey fire" id="btnFire" type="button"><span>FIRE</span></button></div>
+      <button class="bigkey reset" id="btnReset" type="button"><span>RESET</span></button>
+      <div class="plate">
+        <div class="plate-title">TARGETING SOLUTION</div>
+        <div class="plate-sub">AN/PRC-AS1 &middot; MAR FIRE CONTROL</div>
+      </div>
+      <div class="led" id="led" aria-hidden="true"></div>
+      <div class="grille" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <button class="cfgkey" id="btnCfg" type="button" aria-label="Options"><span>CFG</span></button>
+    </header>
+
+    <section class="bezel">
+      <div class="lcd" id="lcd">
+        <div class="lcd-setup" id="lcdSetup">
+          <div class="lcd-status" id="lcdStatus"></div>
+          <div class="lcd-row" id="lcdRow"></div>
+        </div>
+        <div class="lcd-fire" id="lcdFire" hidden>
+          <div class="fire-left">
+            <div class="lcd-status" id="fireStatus"></div>
+            <div class="dicegrid" id="diceGrid"></div>
+          </div>
+          <div class="fire-right">
+            <div class="hit-label">HIT</div>
+            <div class="hit-num" id="hitNum">0</div>
+            <div class="hit-of" id="hitOf"></div>
+            <div class="crit" id="critTag" hidden>CRIT CHK</div>
+          </div>
+        </div>
+        <div class="lcd-msg" id="lcdMsg" hidden></div>
+      </div>
+      <div class="bezel-tag">LCD</div>
+    </section>
+
+    <section class="controls" id="controls"></section>
+  </main>
+
+  <div class="overlay" id="cfg" hidden>
+    <div class="cfg-panel">
+      <span class="screw tl"></span><span class="screw tr"></span>
+      <span class="screw bl"></span><span class="screw br"></span>
+      <div class="cfg-head">
+        <span>CONFIG</span>
+        <button class="bigkey small" id="btnCfgClose" type="button"><span>CLOSE</span></button>
+      </div>
+      <div class="cfg-body">
+        <div class="cfg-group">
+          <div class="cfg-label">HOUSING</div>
+          <div class="swatches" id="bodySwatches"></div>
+        </div>
+        <div class="cfg-group">
+          <div class="cfg-label">DISPLAY</div>
+          <div class="swatches" id="lcdSwatches"></div>
+        </div>
+        <div class="cfg-group cfg-inline">
+          <div class="cfg-label">AUDIO</div>
+          <button class="toggle" id="btnSound" type="button"></button>
+          <div class="cfg-note">TN = SKILL + RNG + TMM + JUMP + COVER + OTHER &middot; ROLL 2D6 &ge; TN PER POINT OF DAMAGE &middot; TN &gt; 12 AUTO MISS &middot; NAT 12 HIT = CRIT CHECK (MAX 1 PER TARGET)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rotate" aria-hidden="true">
+    <div class="rotate-icon"></div>
+    <div>ROTATE DEVICE</div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
