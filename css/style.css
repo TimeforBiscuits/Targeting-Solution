@@ -282,7 +282,7 @@ button {
   background-size: 3px 3px, 3px 3px, 100% 100%;
 }
 
-.lcd-setup, .lcd-fire, .lcd-msg {
+.lcd-setup, .lcd-fire, .lcd-crit, .lcd-msg {
   position: absolute;
   inset: 0;
   padding: 4px 6px 6px;
@@ -575,6 +575,75 @@ button {
   text-shadow: none;
   animation: blink 400ms steps(1) infinite;
 }
+
+/* FIRE strobes red while a crit check is pending */
+.bigkey.fire.strobe { animation: strobe 500ms steps(1) infinite; }
+@keyframes strobe {
+  0% {
+    --rubber: #ff3a2a;
+    background: #ff3a2a;
+    box-shadow: inset 2px 2px 0 #ff9a8a, inset -2px -3px 0 #7a1208, 0 0 0 2px #000, 0 4px 0 2px #000, 0 0 18px 4px rgba(255, 50, 30, .85);
+  }
+  50% {
+    background: #6e130d;
+    box-shadow: inset 2px 2px 0 #a3271c, inset -2px -3px 0 #3a0805, 0 0 0 2px #000, 0 4px 0 2px #000;
+  }
+}
+
+/* Crit check panel */
+.lcd-crit { display: flex; gap: 8px; }
+.crit-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 4vw, 40px);
+  padding: 4px 10px 0 clamp(16px, 5vw, 48px);
+}
+.crit-roll { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.crit-dice { --die: clamp(28px, 10vh, 42px); display: flex; flex-direction: column; gap: 5px; }
+.crit-dice.rolling .die { animation: jitter 84ms steps(1) infinite; }
+.crit-sum {
+  min-width: 52px;
+  padding: 0 4px;
+  font-size: clamp(18px, 6vh, 26px);
+  line-height: 1.05;
+  text-align: center;
+  border-radius: 2px;
+  background: var(--lcd-fg);
+  color: var(--lcd-bg);
+  text-shadow: none;
+}
+.crit-roll.idle .crit-sum { background: transparent; color: var(--lcd-fg); opacity: .4; }
+.crit-result { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.crit-big {
+  font-size: clamp(54px, 22vh, 96px);
+  line-height: .85;
+  white-space: nowrap;
+}
+.crit-big.none { opacity: .55; }
+.crit-big.kill { animation: blink 300ms steps(1) infinite; }
+.crit-full { font-size: clamp(16px, 5.4vh, 24px); letter-spacing: 2px; opacity: .8; white-space: nowrap; }
+.crit-tbl-label, .crit-tbl { font-size: clamp(14px, 4.6vh, 20px); letter-spacing: 2px; opacity: .75; }
+.lcd-btn {
+  margin: 6px 0;
+  padding: 4px 14px 2px;
+  font-family: var(--font-lcd);
+  font-size: clamp(30px, 11vh, 46px);
+  line-height: 1;
+  letter-spacing: 2px;
+  color: var(--lcd-fg);
+  text-shadow: inherit;
+  border: 3px solid var(--lcd-fg);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--lcd-fg) 40%, transparent);
+}
+.lcd-btn.on {
+  background: var(--lcd-fg);
+  color: var(--lcd-bg);
+  text-shadow: none;
+}
+.lcd-btn.pressed { transform: translate(2px, 2px); box-shadow: none; }
 
 .lcd-msg {
   display: flex;

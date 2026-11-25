@@ -1,4 +1,4 @@
-import { RANGES, JUMPS, LIMITS, DEFAULTS, computeTN, rollAttack, hitChance } from './dice.js';
+import { RANGES, JUMPS, LIMITS, DEFAULTS, computeTN, rollAttack, hitChance, rollD6, critResult, CRIT_TABLES } from './dice.js';
 import * as sfx from './audio.js';
 
 // ---------- Themes ----------
@@ -45,12 +45,24 @@ let rollId = 0;
 let rolling = false;
 let skipAnim = false;
 let lastDiceCount = 0;
+let critPending = false; // natural 12 rolled: next FIRE rolls on the crit table
+let critTable = 'mech';
+let critSumValue = null;
 
 const $ = (id) => document.getElementById(id);
 const els = {
   lcdSetup: $('lcdSetup'),
   lcdFire: $('lcdFire'),
   lcdMsg: $('lcdMsg'),
+  lcdCrit: $('lcdCrit'),
+  critStatus: $('critStatus'),
+  critDice: $('critDice'),
+  critSum: $('critSum'),
+  critBig: $('critBig'),
+  critFull: $('critFull'),
+  critTbl: $('critTbl'),
+  btnVic: $('btnVic'),
+  btnFire: $('btnFire'),
   lcdRow: $('lcdRow'),
   lcdStatus: $('lcdStatus'),
   fireStatus: $('fireStatus'),
@@ -138,7 +150,7 @@ function step(ctl, dir) {
   const changed = v !== state[ctl.key];
   state[ctl.key] = v;
   sfx.sfxKey(changed ? (dir > 0 ? 1.12 : 0.9) : 0.6);
-  if (rolling) cancelRoll();
+  cancelRoll(); // also clears a pending crit check
   showSetup();
   renderSetup();
   if (changed) blink(valueCells[ctl.key]);
@@ -164,6 +176,12 @@ function showSetup() {
   els.lcdSetup.hidden = false;
   els.lcdFire.hidden = true;
   els.lcdMsg.hidden = true;
+  els.lcdCrit.hidden = true;
+}
+
+function setCritPending(on) {
+  critPending = on;
+  els.btnFire.classList.toggle('strobe', on);
 }
 
 // ---------- Fire view ----------
@@ -232,6 +250,10 @@ async function fire() {
     skipAnim = true; // second press fast-forwards
     return;
   }
+  if (critPending) {
+    critCheck();
+    return;
+  }
   const tn = computeTN(state);
   if (tn > 12) {
     noShot(tn);
@@ -245,6 +267,7 @@ async function fire() {
 
   els.lcdSetup.hidden = true;
   els.lcdMsg.hidden = true;
+  els.lcdCrit.hidden = true;
   els.lcdFire.hidden = false;
   els.critTag.classList.remove('crit-on');
   els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span><span class="ready blinkslow">FIRING</span>`;
@@ -298,11 +321,88 @@ async function fire() {
   sfx.sfxDone(hits, n);
   if (result.crit) {
     els.critTag.classList.add('crit-on');
+    setCritPending(true);
     sfx.sfxCrit();
   }
 }
 
+// ---------- Crit check ----------
+async function critCheck() {
+  setCritPending(false);
+  const id = ++rollId;
+  rolling = true;
+  skipAnim = false;
+  critTable = 'mech'; // default table each check
+  critSumValue = null;
+  renderCritTable();
+
+  els.lcdSetup.hidden = true;
+  els.lcdFire.hidden = true;
+  els.lcdMsg.hidden = true;
+  els.lcdCrit.hidden = false;
+  els.critStatus.innerHTML = `<span>CRITICAL HIT</span><span>2D6</span><span class="ready blinkslow">ROLLING</span>`;
+  els.critBig.className = 'crit-big';
+  els.critBig.textContent = '';
+  els.critFull.textContent = '';
+  const roll = els.critDice.parentElement;
+  roll.classList.add('idle');
+  els.critDice.innerHTML = '';
+  const a = makeDie();
+  const b = makeDie();
+  els.critDice.append(a, b);
+  els.critDice.classList.add('rolling');
+  els.led.className = 'led busy';
+
+  const d1 = rollD6();
+  const d2 = rollD6();
+  sfx.sfxFire();
+  let t = 0;
+  while (t < 900 && !skipAnim) {
+    setFace(a, 1 + Math.floor(Math.random() * 6));
+    setFace(b, 1 + Math.floor(Math.random() * 6));
+    els.critSum.textContent = String(2 + Math.floor(Math.random() * 11)).padStart(2, '0');
+    sfx.sfxTick();
+    await sleep(42);
+    if (id !== rollId) return;
+    t += 42;
+  }
+  setFace(a, d1);
+  setFace(b, d2);
+  els.critDice.classList.remove('rolling');
+  roll.classList.remove('idle');
+  els.critSum.textContent = String(d1 + d2);
+  critSumValue = d1 + d2;
+  rolling = false;
+  els.critStatus.innerHTML = `<span>CRITICAL HIT</span><span>2D6</span><span class="ready">RESULT</span>`;
+  const r = renderCritResult();
+  els.led.className = 'led ' + (r.none ? 'good' : 'bad');
+  if (r.kill) sfx.sfxError();
+  else sfx.sfxLand(!r.none);
+}
+
+function renderCritTable() {
+  els.btnVic.classList.toggle('on', critTable === 'vehicle');
+  els.critTbl.textContent = CRIT_TABLES[critTable].name;
+}
+
+function renderCritResult() {
+  const r = critResult(critSumValue, critTable);
+  els.critBig.textContent = r.label;
+  els.critBig.className = 'crit-big' + (r.none ? ' none' : '') + (r.kill ? ' kill' : '');
+  els.critFull.textContent = r.full;
+  blink(els.critBig);
+  return r;
+}
+
+function toggleVehicle() {
+  critTable = critTable === 'mech' ? 'vehicle' : 'mech';
+  sfx.sfxKey(critTable === 'vehicle' ? 1.12 : 0.9);
+  renderCritTable();
+  if (critSumValue !== null) renderCritResult();
+}
+
 function cancelRoll() {
+  setCritPending(false);
   rollId++;
   rolling = false;
   els.led.className = 'led';
@@ -420,6 +520,7 @@ function init() {
   renderSetup();
   bindBigKey($('btnFire'), fire);
   bindBigKey($('btnReset'), reset);
+  bindBigKey(els.btnVic, toggleVehicle);
 
   sfx.installAudioUnlock();
   document.addEventListener('contextmenu', (e) => e.preventDefault());

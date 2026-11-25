@@ -83,3 +83,45 @@ export function hitChance(tn) {
   for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) if (a + b >= tn) ways++;
   return ways / 36;
 }
+
+// Determining Critical Hits Table (Alpha Strike CE). [short LCD label, full name]
+const NO_CRIT = ['NO CRIT', 'NO CRITICAL HIT'];
+export const CRIT_TABLES = {
+  mech: {
+    name: "'MECH",
+    rows: {
+      2: ['AMMO', 'AMMO HIT'],
+      3: ['ENG', 'ENGINE HIT'],
+      4: ['FIRE', 'FIRE CONTROL HIT'],
+      5: NO_CRIT,
+      6: ['WEPS', 'WEAPON HIT'],
+      7: ['MP', 'MP HIT'],
+      8: ['WEPS', 'WEAPON HIT'],
+      9: NO_CRIT,
+      10: ['FIRE', 'FIRE CONTROL HIT'],
+      11: ['ENG', 'ENGINE HIT'],
+      12: ['KILL', 'UNIT DESTROYED'],
+    },
+  },
+  vehicle: {
+    name: 'VEHICLE',
+    rows: {
+      2: ['AMMO', 'AMMO HIT'],
+      3: ['STUN', 'CREW STUNNED'],
+      4: ['FIRE', 'FIRE CONTROL HIT'],
+      5: ['FIRE', 'FIRE CONTROL HIT'],
+      6: NO_CRIT,
+      7: NO_CRIT,
+      8: NO_CRIT,
+      9: ['WEPS', 'WEAPON HIT'],
+      10: ['WEPS', 'WEAPON HIT'],
+      11: ['CREW KIA', 'CREW KILLED'],
+      12: ['ENG', 'ENGINE HIT'],
+    },
+  },
+};
+
+export function critResult(sum, table = 'mech') {
+  const [label, full] = CRIT_TABLES[table].rows[sum];
+  return { label, full, none: label === NO_CRIT[0], kill: label === 'KILL' || label === 'CREW KIA' };
+}

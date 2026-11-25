@@ -60,3 +60,14 @@ test('d6 is uniform and 2D6 follows the bell curve', () => {
   }
   assert.ok(chi < 29.6, `chi-square ${chi.toFixed(2)}`);
 });
+
+import { critResult } from '../js/dice.js';
+test('critical hits table', () => {
+  assert.equal(critResult(12).label, 'KILL');
+  assert.equal(critResult(7).label, 'MP');
+  assert.equal(critResult(5).none, true);
+  assert.equal(critResult(12, 'vehicle').label, 'ENG');
+  assert.equal(critResult(3, 'vehicle').full, 'CREW STUNNED');
+  assert.equal(critResult(7, 'vehicle').none, true);
+  for (let s = 2; s <= 12; s++) { critResult(s); critResult(s, 'vehicle'); }
+});
