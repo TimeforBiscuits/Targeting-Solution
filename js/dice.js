@@ -25,6 +25,9 @@ export const LIMITS = {
   cover: { min: 0, max: 3 },
   other: { min: -4, max: 6 },
   dice: { min: 1, max: 15 },
+  jmps: { min: 0, max: 4 },
+  jmpw: { min: 0, max: 4 },
+  idf: { min: 0, max: 2 },
 };
 
 export const DEFAULTS = Object.freeze({
@@ -35,10 +38,26 @@ export const DEFAULTS = Object.freeze({
   cover: 0,
   other: 0,
   dice: 1,
+  jmps: 0, // Strong Jump Jets (JMPS#), 0 = none
+  jmpw: 0, // Weak Jump Jets (JMPW#), 0 = none
+  idf: 0, // Indirect fire: 0 off, 1 = +1, 2 = +2 (spotter also attacked)
 });
 
+// JMPS#/JMPW# add/subtract # from the target's TMM, but only when the target
+// used jumping movement (Special Abilities: Jump Jets, Weak or Strong).
+export function jumpJetMod(s) {
+  return JUMPS[s.jump].tgt ? (s.jmps || 0) - (s.jmpw || 0) : 0;
+}
+
+// Indirect fire: +1, or +2 if the spotter made a weapon attack this turn.
+export function indirectMod(s) {
+  return s.idf || 0;
+}
+
 export function computeTN(s) {
-  return s.skill + RANGES[s.range].mod + s.tmm + JUMPS[s.jump].mod + s.cover + s.other;
+  return (
+    s.skill + RANGES[s.range].mod + s.tmm + JUMPS[s.jump].mod + s.cover + s.other + jumpJetMod(s) + indirectMod(s)
+  );
 }
 
 // Uniform integer 1..6 from a cryptographic source. Rejection sampling

@@ -14,6 +14,16 @@ A field-radio-styled fire-control computer for **BattleTech: Alpha Strike** (Com
 | OTHER | −4 to +6 | 0 | anything else (heat, standstill −1, secondary target +1, indirect fire, woods…) |
 | DICE | 1–15 | 1 | number of attack rolls (damage at that range) |
 
+Three mini keys in the top bar cover special abilities:
+
+| Key | Values (each press steps on) | Target Number modifier |
+|---|---|---|
+| JMPS | off → 1 → 2 → 3 → 4 → off | +# to the target's TMM (Strong Jump Jets) |
+| JMPW | off → 1 → 2 → 3 → 4 → off | −# from the target's TMM (Weak Jump Jets) |
+| IDF | off → +1 → +2 → off | Indirect fire: +1, or +2 if the spotter also made a weapon attack this turn |
+
+JMPS and JMPW only count when JUMP? shows **TGT:Y**, because the rules apply them only when the target used jumping movement. While the target hasn't jumped they're greyed out and ignored. A unit has strong or weak jets, not both, so setting one clears the other. Active modifiers are listed on the firing screen's top line (for example `TN=11 DICE=4 JMPS2 IDF+1`). A remote-sensor spotter's extra +3 goes in OTHER.
+
 The up/down keys auto-repeat when held (except RNG and JUMP, which step once per press). The status line shows the TN, the chance per roll, and the expected number of hits.
 
 - **FIRE** rolls the attack. The rolls are animated one after another; press FIRE during the animation to skip to the result, or after it to re-roll with the same settings.
@@ -23,7 +33,7 @@ The up/down keys auto-repeat when held (except RNG and JUMP, which step once per
 
 ## Rules implemented
 
-- TN = Skill + Range + TMM + Jump + Cover + Other (S.A.T.O.R.).
+- TN = Skill + Range + TMM + Jump + Cover + Other + JMPS/JMPW (if the target jumped) + IDF (S.A.T.O.R.).
 - A roll hits when 2D6 ≥ TN. If TN > 12 the attack misses automatically, and the unit shows **NO SHOT** instead of rolling. A 12 is not an automatic hit.
 - If a hit is a natural 12, the unit shows **CRIT CHK** and the CRIT key strobes (under MAR you get at most one per target).
 - Crit codes: AMMO, ENG (engine), FIRE (fire control), MP, WEPS, NO CRIT, KILL. On the Vehicle table: STUN (crew stunned) and CREW KIA (crew killed).

@@ -164,8 +164,47 @@ function blink(el) {
 }
 
 // ---------- Setup view ----------
+// Mini keys: JMPS and JMPW step off -> 1 -> 2 -> 3 -> 4 -> off (mutually
+// exclusive); IDF steps off -> +1 -> +2 -> off.
+const MODS = [
+  { key: 'jmps', other: 'jmpw', btn: 'btnJmps', val: 'valJmps', box: 'modJmps', fmt: (v) => String(v), needsTgtJump: true },
+  { key: 'jmpw', other: 'jmps', btn: 'btnJmpw', val: 'valJmpw', box: 'modJmpw', fmt: (v) => String(v), needsTgtJump: true },
+  { key: 'idf', btn: 'btnIdf', val: 'valIdf', box: 'modIdf', fmt: (v) => `+${v}` },
+];
+
+function stepMod(m) {
+  const { max } = LIMITS[m.key];
+  state[m.key] = state[m.key] >= max ? 0 : state[m.key] + 1;
+  if (m.other && state[m.key]) state[m.other] = 0; // a unit has strong OR weak jets
+  sfx.sfxKey(state[m.key] ? 1.12 : 0.8);
+  cancelRoll();
+  showSetup();
+  renderSetup();
+  const v = $(m.val);
+  if (state[m.key]) blink(v);
+}
+
+function renderMods() {
+  const tgtJumped = JUMPS[state.jump].tgt;
+  for (const m of MODS) {
+    const v = state[m.key];
+    $(m.val).textContent = v ? m.fmt(v) : '';
+    $(m.box).classList.toggle('inactive', !!m.needsTgtJump && !tgtJumped);
+  }
+}
+
+// Short tags for the firing screen, e.g. "JMPS2 IDF+1" (only active modifiers).
+function modTags() {
+  const tags = [];
+  if (JUMPS[state.jump].tgt && state.jmps) tags.push(`JMPS${state.jmps}`);
+  if (JUMPS[state.jump].tgt && state.jmpw) tags.push(`JMPW${state.jmpw}`);
+  if (state.idf) tags.push(`IDF+${state.idf}`);
+  return tags.map((t) => `<span>${t}</span>`).join('');
+}
+
 function renderSetup() {
   for (const c of CONTROLS) valueCells[c.key].innerHTML = c.fmt(state[c.key]);
+  renderMods();
   const tn = computeTN(state);
   const p = hitChance(tn);
   const tnText = tn > 12 ? `<span class="warn">TN ${tn} NO SHOT</span>` : `TN ${Math.max(tn, 2)}`;
@@ -273,7 +312,7 @@ async function fire() {
   els.lcdCrit.hidden = true;
   els.lcdFire.hidden = false;
   els.critTag.classList.remove('crit-on');
-  els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span><span class="ready blinkslow">FIRING</span>`;
+  els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span>${modTags()}<span class="ready blinkslow">FIRING</span>`;
   els.hitNum.textContent = '0';
   els.hitOf.textContent = `/${n}`;
   const cells = buildGrid(n);
@@ -320,7 +359,7 @@ async function fire() {
 
   rolling = false;
   els.led.className = 'led ' + (hits ? 'good' : 'bad');
-  els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span><span class="ready">${hits ? 'ON TARGET' : 'MISSED'}</span>`;
+  els.fireStatus.innerHTML = `<span>TN=${Math.max(tn, 2)}</span><span>DICE=${n}</span>${modTags()}<span class="ready">${hits ? 'ON TARGET' : 'MISSED'}</span>`;
   sfx.sfxDone(hits, n);
   if (result.crit) {
     els.critTag.classList.add('crit-on');
@@ -536,6 +575,7 @@ function init() {
   bindBigKey($('btnFire'), fire);
   bindBigKey($('btnReset'), reset);
   bindBigKey(els.btnCrit, critKey);
+  for (const m of MODS) bindBigKey($(m.btn), () => { sfx.unlockAudio(); stepMod(m); });
   bindBigKey(els.btnVic, toggleVehicle);
 
   sfx.installAudioUnlock();

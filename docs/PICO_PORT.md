@@ -41,6 +41,11 @@ Targeting Solution resolves attacks in **BattleTech: Alpha Strike** (Commander's
 | COVER | +0 to +3 | +0 | +cover |
 | OTHER | −4 to +6 | 0 | Anything else (heat, standstill −1, secondary target +1, indirect fire…) |
 | DICE | 1–15 | 1 | Number of attack rolls |
+| JMPS (mini key) | off, 1–4 | off | +# to the target's TMM, **only if the target jumped** |
+| JMPW (mini key) | off, 1–4 | off | −# from the target's TMM, **only if the target jumped** |
+| IDF (mini key) | off, +1, +2 | off | Indirect fire: +1, or +2 if the spotter also made a weapon attack |
+
+Each press of a mini key steps it on one value and wraps back to off. JMPS and JMPW cancel each other (a unit has strong *or* weak jets), and they're greyed out and ignored while JUMP? shows TGT:N. Each mini key has a tiny LCD readout beside it.
 
 Each control has an up and a down key. Holding a key repeats it after 420 ms, every 110 ms, except RNG and JUMP?, which step once per press. JUMP? is the only control that loops round; the others stop at their limits.
 
@@ -146,15 +151,16 @@ The **Pico 2 W** adds Wi-Fi and Bluetooth. You don't need them, but they'd allow
 |---|---|
 | Big keys | FIRE, RESET, CRIT, CFG |
 | Control keys | 7 controls × up/down = 14 |
+| Mini keys | JMPS, JMPW, IDF |
 | VIC? | 1 (see below) |
-| **Total** | **19** |
+| **Total** | **22** |
 
 ### 6.2 Wiring options
 
-Wiring 19 keys directly would use 19 of the 26 pins, leaving too few for the screen, sound and battery. Two common ways round that:
+Wiring 22 keys directly would use 22 of the 26 pins, leaving too few for the screen, sound and battery. Two common ways round that:
 
-1. **A key matrix (recommended).** Arrange the keys in a 4×5 grid of rows and columns: 20 positions on 9 pins. Put a diode on each key if two keys pressed together must both register; for this device, reading one key at a time is enough. The code scans the grid every few milliseconds.
-2. **An I²C key-expander chip (MCP23017).** One small chip gives 16 inputs on just 2 pins (plus an optional interrupt pin). It's simpler to wire, at the cost of one more part.
+1. **A key matrix (recommended).** Arrange the keys in a 5×5 grid of rows and columns: 25 positions on 10 pins. Put a diode on each key if two keys pressed together must both register; for this device, reading one key at a time is enough. The code scans the grid every few milliseconds.
+2. **I²C key-expander chips (MCP23017).** Each small chip gives 16 inputs, and two of them (22 keys) share the same 2 pins (plus an optional interrupt pin). It's simpler to wire, at the cost of extra parts.
 
 ### 6.3 How the keys should behave in code
 - **Debounce:** only accept a change after the key has read the same for about 10–20 ms.
@@ -328,7 +334,8 @@ This is the app's behaviour written out so it can be rebuilt on any platform. On
 | Event | From | Do this | To |
 |---|---|---|---|
 | Control key (up/down) | any except CONFIG | Change the value (clamped; JUMP? loops). Cancel any roll. Clear `crit_pending` | `SETUP` |
-| RESET | any except CONFIG | All controls back to defaults. Cancel any roll. Clear `crit_pending` | `SETUP` |
+| JMPS / JMPW / IDF | any except CONFIG | Step the value on (wrap to off); JMPS and JMPW clear each other. Cancel any roll. Clear `crit_pending` | `SETUP` |
+| RESET | any except CONFIG | All controls back to defaults (including the mini keys). Cancel any roll. Clear `crit_pending` | `SETUP` |
 | FIRE | `ROLLING` or `CRIT_ROLLING` | Set `skip` | (same) |
 | FIRE | otherwise, TN > 12 | Error sound | `NO_SHOT` |
 | FIRE | otherwise | Clear `crit_pending`. Roll all the dice now, then animate | `ROLLING` |
@@ -374,7 +381,7 @@ Save: display scheme, sound on/off, volume, brightness, and (optionally) the las
 These are requirements for the 3D-printed case. The case itself is a separate piece of work.
 
 - **Front panel layout** (as in the app):
-  - Top row: FIRE (hazard-stripe guard), RESET, CRIT (amber, hazard-stripe guard), a title plate, the status light, a speaker grille, CFG.
+  - Top row: FIRE (hazard-stripe guard), RESET, CRIT (amber, hazard-stripe guard), the JMPS / JMPW / IDF mini keys (each with a tiny readout, or an LED or small 7-segment digit on the device), the status light, CFG. The title can move to an engraved plate elsewhere on the case.
   - Middle: the display window with a bezel.
   - Bottom: seven pairs of up/down keys with labels above them (SKILL, RNG, TMM, JUMP?, COVER, OTHER, DICE), lined up under the matching values on the screen.
   - A small VIC key near the right-hand end of the display, if you choose that option.
@@ -445,10 +452,12 @@ Good learning resources: the Raspberry Pi Pico 2 documentation and datasheet, Ad
 
 ### 17.1 Target number
 ```
-TN = SKILL + RANGE + TMM + JUMP + COVER + OTHER
+TN = SKILL + RANGE + TMM + JUMP + COVER + OTHER + JUMPJETS + IDF
 
-RANGE: SHT 0, MED 2, LNG 4
-JUMP:  N/N 0, YOU 2, TGT 1, BOTH 3
+RANGE:    SHT 0, MED 2, LNG 4
+JUMP:     N/N 0, YOU 2, TGT 1, BOTH 3
+JUMPJETS: +JMPS# or −JMPW#, only when the target jumped (TGT:Y), else 0
+IDF:      off 0, +1, or +2 when the spotter also made a weapon attack
 ```
 - A roll **hits** if `d1 + d2 >= TN` and `TN <= 12`.
 - If `TN > 12`: automatic miss (NO SHOT). A 12 is *not* an automatic hit.
@@ -487,6 +496,9 @@ jump  0..3   default 0 (N/N), loops round
 cover 0..3   default 0
 other -4..6  default 0
 dice  1..15  default 1
+jmps  0..4   default 0 (off); clears jmpw when set
+jmpw  0..4   default 0 (off); clears jmps when set
+idf   0..2   default 0 (off)
 ```
 
 ### 17.4 Rules engine, in Python (starting point)
@@ -499,9 +511,13 @@ import os
 RANGE_MOD = (0, 2, 4)            # SHT, MED, LNG
 JUMP_MOD = (0, 2, 1, 3)          # N/N, YOU, TGT, BOTH
 
+TGT_JUMPED = (False, False, True, True)   # by JUMP index
+
 def compute_tn(s):
+    jump_jets = (s["jmps"] - s["jmpw"]) if TGT_JUMPED[s["jump"]] else 0
     return (s["skill"] + RANGE_MOD[s["range"]] + s["tmm"]
-            + JUMP_MOD[s["jump"]] + s["cover"] + s["other"])
+            + JUMP_MOD[s["jump"]] + s["cover"] + s["other"]
+            + jump_jets + s["idf"])
 
 def roll_d6():
     while True:

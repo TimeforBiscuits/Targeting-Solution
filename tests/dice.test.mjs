@@ -71,3 +71,18 @@ test('critical hits table', () => {
   assert.equal(critResult(7, 'vehicle').none, true);
   for (let s = 2; s <= 12; s++) { critResult(s); critResult(s, 'vehicle'); }
 });
+
+test('JMPS/JMPW only apply when the target jumped', () => {
+  const tgtJumped = { ...DEFAULTS, jump: 2 }; // YOU:N TGT:Y -> TN 8
+  assert.equal(computeTN(tgtJumped), 8);
+  assert.equal(computeTN({ ...tgtJumped, jmps: 2 }), 10);
+  assert.equal(computeTN({ ...tgtJumped, jmpw: 1 }), 7);
+  assert.equal(computeTN({ ...DEFAULTS, jmps: 4 }), 7); // target didn't jump: ignored
+  assert.equal(computeTN({ ...DEFAULTS, jump: 1, jmps: 4 }), 9); // only attacker jumped: ignored
+  assert.equal(computeTN({ ...DEFAULTS, jump: 3, jmpw: 4 }), 6); // both jumped: TGT weak applies
+});
+
+test('indirect fire +1 / +2', () => {
+  assert.equal(computeTN({ ...DEFAULTS, idf: 1 }), 8);
+  assert.equal(computeTN({ ...DEFAULTS, idf: 2 }), 9);
+});
